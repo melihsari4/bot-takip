@@ -4,7 +4,7 @@ import os
 import sys
 import time
 
-# --- GÜVENLİK AYARI ---
+# --- GÜVENLİK VE AYARLAR ---
 TELEGRAM_TOKEN = os.environ.get("TELEGRAM_TOKEN")
 CHAT_ID = os.environ.get("CHAT_ID")
 
@@ -27,6 +27,7 @@ def telegram_mesaj_gonder(mesaj):
         pass
 
 def kontrol_et_ve_bildir():
+    # 1. Siteye bağlan
     try:
         response = requests.get(TAKIP_EDILECEK_URL)
         soup = BeautifulSoup(response.content, "html.parser")
@@ -35,18 +36,24 @@ def kontrol_et_ve_bildir():
         print(f"Site hatası: {e}")
         return
 
+    # 2. Eski durumu oku
     eski_icerik = ""
     if os.path.exists(DURUM_DOSYASI):
         with open(DURUM_DOSYASI, "r", encoding="utf-8") as f:
             eski_icerik = f.read().strip()
     
+    # 3. Karşılaştır
     if yeni_icerik != eski_icerik:
         if eski_icerik == "":
-            print("İlk kayıt alındı.")
+            # --- RESMİ AÇILIŞ MESAJI ---
+            print("Sistem başlatıldı, bildirim gönderiliyor...")
+            telegram_mesaj_gonder(f"✅ Sistem Başarıyla Başlatıldı.\n\nİzlenen Adres: {TAKIP_EDILECEK_URL}\n\nWeb sitesi izleme servisi aktif durumdadır. İçerik değişikliği olması durumunda tarafınıza anlık bildirim iletilecektir.")
         else:
-            print("🚨 DEĞİŞİKLİK VAR!")
-            telegram_mesaj_gonder(f"🚨 DİKKAT! Sitede değişiklik oldu!\nLink: {TAKIP_EDILECEK_URL}")
+            # --- RESMİ DEĞİŞİKLİK MESAJI ---
+            print("🚨 DEĞİŞİKLİK TESPİT EDİLDİ!")
+            telegram_mesaj_gonder(f"⚠️ Bilgilendirme: Web Sitesi Güncellendi\n\nTakip edilen web sayfasında içerik değişikliği tespit edilmiştir.\n\nBağlantı: {TAKIP_EDILECEK_URL}")
 
+        # 4. Kaydet
         with open(DURUM_DOSYASI, "w", encoding="utf-8") as f:
             f.write(yeni_icerik)
     else:
@@ -54,12 +61,12 @@ def kontrol_et_ve_bildir():
 
 def main():
     baslangic_zamani = time.time()
-    print(f"Bot başlatıldı! {CALISMA_SURESI} saniye boyunca çalışacak.")
+    print(f"Sistem izleme modunda... ({CALISMA_SURESI} saniye)")
     
     while True:
         gecen_sure = time.time() - baslangic_zamani
         if gecen_sure > CALISMA_SURESI:
-            print("Süre doldu, nöbet devrediliyor...")
+            print("Süre doldu, oturum yenileniyor...")
             break
             
         kontrol_et_ve_bildir()
